@@ -145,7 +145,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </blockquote>
 <p><strong>Step 1: Find the police report in <code>crime_scene_report</code>. Then used the information in the report to move on to the next data source based on the information learned.</strong></p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Code for looking at the relevant crime scene report.</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Code for looking at the relevant crime scene report.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>crime_scene_report <span class="sc">%&gt;%</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(date <span class="sc">==</span><span class="st">"20180115"</span>, city <span class="sc">==</span> <span class="st">"SQL City"</span>, type <span class="sc">==</span> <span class="st">"murder"</span>) <span class="sc">%&gt;%</span> <span class="co">#filter for the date of the crime, city, and crime type</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(description) <span class="co">#pull the description</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Security footage shows that there were 2 witnesses. The first witness lives at the last house on \"Northwestern Dr\". The second witness, named Annabel, lives somewhere on \"Franklin Ave\"."</code></pre>
+</div>
 </div>
 <p><strong>Next Steps: Follow the evidence to the person responsible for the murder, building a report as you go.</strong> There are accomplices, some knowingly and some unknowingly, but there is only one mastermind.</p>
 <p>Solve the murder mystery, showing <strong>all of your work in this document</strong>. Your document and code must be well organized, easy to follow, and reproducible.</p>
@@ -156,6 +163,154 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Comment your code.</li>
 <li>Cite any external sources you use to solve the mystery.</li>
 </ul>
+<blockquote class="blockquote">
+<p>e need to find our witnesses so that we can search for their interview records. But all we have is their streets and a first name.</p>
+</blockquote>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#searching for witness 1: Northwestern Dr</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>person <span class="sc">%&gt;%</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(address_street_name <span class="sc">==</span><span class="st">"Northwestern Dr"</span>) <span class="sc">%&gt;%</span> <span class="co">#filter for the witness's address</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(address_number))<span class="sc">%&gt;%</span> <span class="co">#we know they live at the last house on the street, so order addresses in descending</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(name, id) <span class="sc">%&gt;%</span> <span class="co">#pull the resident's name and ID</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">1</span>) <span class="co">#of only the last house on the street</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           14887 
+"Morty Schapiro" </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">#searching for witness 2: Annabel on Franklin Ave</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>person <span class="sc">%&gt;%</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(address_street_name <span class="sc">==</span><span class="st">"Franklin Ave"</span>, <span class="fu">str_detect</span>(name, <span class="st">"Annabel "</span>)) <span class="sc">%&gt;%</span> <span class="co">#filter for the witness's address and name (from her first name)</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(name, id) <span class="co">#pull the resident's name and ID</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           16371 
+"Annabel Miller" </code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>Next we are looking through the witness interviews, so that we can learn any information about the suspect.</p>
+</blockquote>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Morty Schapiro</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>interview <span class="sc">%&gt;%</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(person_id <span class="sc">==</span><span class="st">"14887"</span>) <span class="sc">%&gt;%</span> <span class="co">#filter for the witness's id</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(transcript) <span class="co">#pull the interview transcript</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "I heard a gunshot and then saw a man run out. He had a \"Get Fit Now Gym\" bag. The membership number on the bag started with \"48Z\". Only gold members have those bags. The man got into a car with a plate that included \"H42W\"."</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Annabel Miller</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>interview <span class="sc">%&gt;%</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(person_id <span class="sc">==</span><span class="st">"16371"</span>) <span class="sc">%&gt;%</span> <span class="co">#filter for the witness's id</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(transcript) <span class="co">#pull the interview transcript</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "I saw the murder happen, and I recognized the killer from my gym when I was working out last week on January the 9th."</code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>Since a witness believes the suspect is a Get Fit Now “gold” member, we need to identify anyone with the matching gym membership ids.</p>
+</blockquote>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">#searching for member name</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>get_fit_now_member <span class="sc">%&gt;%</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">str_detect</span>(id, <span class="st">"48Z"</span>) , membership_status <span class="sc">==</span><span class="st">"gold"</span>) <span class="sc">%&gt;%</span> <span class="co">#filter for the witness's id</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(name, id) <span class="co">#pull the interview transcript</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          48Z7A           48Z55 
+ "Joe Germuska" "Jeremy Bowers" </code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>There are two gold members with that partial ID number. “Joe Germuska” and “Jeremy Bowers”. Now we need to see if either of them was at the gym on January 9th, the day Annabel remembers seeing the murderer.</p>
+</blockquote>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>get_fit_now_check_in <span class="sc">%&gt;%</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">str_detect</span>(membership_id, <span class="st">"48Z"</span>) , check_in_date <span class="sc">==</span><span class="st">"20180109"</span>) <span class="sc">%&gt;%</span> <span class="co">#filter for the date Annabel saw the murderer</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(membership_id) <span class="co">#pull the id of our suspect if they went to the gym on that date</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "48Z7A" "48Z55"</code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>It seems both men are now suspects because they were both at the gym the day Annabel saw the murderer. Lets follow up on the licence plate number we have from our witness Morty.</p>
+</blockquote>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">#To match a person to the plate, we first need the licence plate ids of our 2 suspects</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>person <span class="sc">%&gt;%</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(name <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Joe Germuska"</span>, <span class="st">"Jeremy Bowers"</span>)) <span class="sc">%&gt;%</span> <span class="co">#filter for suspect names</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(name, id, license_id) <span class="co">#pull their licence ids and ids</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 3
+  name             id license_id
+  &lt;chr&gt;         &lt;dbl&gt;      &lt;dbl&gt;
+1 Joe Germuska  28819     173289
+2 Jeremy Bowers 67318     423327</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">#pull their licence plate numbers and look for a match to H42W</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>drivers_license <span class="sc">%&gt;%</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(id <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"173289"</span>, <span class="st">"423327"</span>), <span class="fu">str_detect</span>(plate_number, <span class="st">"H42W"</span>)) <span class="sc">%&gt;%</span> <span class="co">#filter for suspect ids and search for the partial plate number</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(id) <span class="co">#pull the id of anyone with the matching plate</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 423327</code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>We have found that Jeremy Bowers has the matching licence plate number so he is our top suspect, but lets see if he was interviewed.</p>
+</blockquote>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Jeremy Bowers</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>interview <span class="sc">%&gt;%</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(person_id <span class="sc">==</span><span class="st">"67318"</span>) <span class="sc">%&gt;%</span> <span class="co">#filter for the witness's id</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(transcript) <span class="co">#pull the interview transcript</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "I was hired by a woman with a lot of money. I don't know her name but I know she's around 5'5\" (65\") or 5'7\" (67\"). She has red hair and she drives a Tesla Model S. I know that she attended the SQL Symphony Concert 3 times in December 2017."</code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>Lets search for records of a woman matching Jeremy’s description.</p>
+</blockquote>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>drivers_license <span class="sc">%&gt;%</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(height <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"65"</span>, <span class="st">"66"</span>, <span class="st">"67"</span>), hair_color <span class="sc">==</span><span class="st">"red"</span>, car_make <span class="sc">==</span><span class="st">"Tesla"</span>, car_model<span class="sc">==</span><span class="st">"Model S"</span>) <span class="sc">%&gt;%</span> <span class="co">#filter for the woman's height, hair, and car</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(id) <span class="co">#pull the interview transcript</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 202298 291182 918773</code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>Now we have three suspects for the woman who hired our hit-man. Lets find their person ids so we can search for their records in the facebook check-ins data later.</p>
+</blockquote>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>person <span class="sc">%&gt;%</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(license_id <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"202298"</span>, <span class="st">"291182"</span>, <span class="st">"918773"</span>)) <span class="sc">%&gt;%</span> <span class="co">#filter for suspect licence ids</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(name, id, license_id) <span class="co">#pull their ids and names</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 3
+  name                id license_id
+  &lt;chr&gt;            &lt;dbl&gt;      &lt;dbl&gt;
+1 Red Korb         78881     918773
+2 Regina George    90700     291182
+3 Miranda Priestly 99716     202298</code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>Now out of these 3 women, lets see who attended the concert 3 times like Jeremy recalled in his interview. I considered using a map function to do this, but decided just using summarise would be cleaner with our 3 ids.</p>
+</blockquote>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>facebook_event_checkin <span class="sc">%&gt;%</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">str_detect</span>(date, <span class="st">"201712"</span>), <span class="co">#filter for December 2017</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>         event_name <span class="sc">==</span> <span class="st">"SQL Symphony Concert"</span>,  <span class="co">#look for the concert event check-ins</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>         person_id <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"78881"</span>, <span class="st">"90700"</span>, <span class="st">"99716"</span>)) <span class="sc">%&gt;%</span> <span class="co">#filter for the ids of our female suspects</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id) <span class="sc">%&gt;%</span> <span class="co">#group by person</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">times_attended =</span> <span class="fu">n</span>()) <span class="co">#count the number of times each suspect attended the concert</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 2
+  person_id times_attended
+      &lt;dbl&gt;          &lt;int&gt;
+1     99716              3</code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>Only Miranda Priestly attended the concert 3 times in December, so she must be the woman who hired our hit-man (who should also be charged).</p>
+</blockquote>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -166,7 +321,7 @@ And the final suspect is…
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><em>put the name of the person responsible for the murder here.</em></p>
+<p><em>Miranda Priestly</em></p>
 </div>
 </div>
 </section>

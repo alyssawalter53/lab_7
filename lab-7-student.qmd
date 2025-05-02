@@ -78,9 +78,12 @@ Detective Wickham reaches out to you...
 information in the report to move on to the next data source based on
 the information learned.**
 
-```{r}
+```{r first_lead}
 # Code for looking at the relevant crime scene report.
 
+crime_scene_report %>%
+  filter(date =="20180115", city == "SQL City", type == "murder") %>% #filter for the date of the crime, city, and crime type
+  pull(description) #pull the description
 
 ```
 
@@ -100,8 +103,113 @@ reproducible.
 -   Comment your code.
 -   Cite any external sources you use to solve the mystery.
 
+>e need to find our witnesses so that we can search for their interview records. But all we have is their streets and a first name.
+
+```{r finding_witnesses}
+
+#searching for witness 1: Northwestern Dr
+person %>%
+  filter(address_street_name =="Northwestern Dr") %>% #filter for the witness's address
+  arrange(desc(address_number))%>% #we know they live at the last house on the street, so order addresses in descending
+  pull(name, id) %>% #pull the resident's name and ID
+  head(1) #of only the last house on the street
+
+#searching for witness 2: Annabel on Franklin Ave
+person %>%
+  filter(address_street_name =="Franklin Ave", str_detect(name, "Annabel ")) %>% #filter for the witness's address and name (from her first name)
+  pull(name, id) #pull the resident's name and ID
+```
+>Next we are looking through the witness interviews, so that we can learn any information about the suspect.
+
+
+```{r witness_interviews}
+
+# Morty Schapiro
+interview %>%
+  filter(person_id =="14887") %>% #filter for the witness's id
+  pull(transcript) #pull the interview transcript
+
+# Annabel Miller
+interview %>%
+  filter(person_id =="16371") %>% #filter for the witness's id
+  pull(transcript) #pull the interview transcript
+
+```
+>Since a witness believes the suspect is a Get Fit Now "gold" member, we need to identify anyone with the matching gym membership ids. 
+
+```{r identifying_suspects}
+
+#searching for member name
+get_fit_now_member %>%
+  filter(str_detect(id, "48Z") , membership_status =="gold") %>% #filter for the witness's id
+  pull(name, id) #pull the interview transcript
+
+```
+
+>There are two gold members with that partial ID number. "Joe Germuska" and "Jeremy Bowers". Now we need to see if either of them was at the gym on January 9th, the day Annabel remembers seeing the murderer.
+
+```{r finding_evidence}
+
+get_fit_now_check_in %>%
+  filter(str_detect(membership_id, "48Z") , check_in_date =="20180109") %>% #filter for the date Annabel saw the murderer
+  pull(membership_id) #pull the id of our suspect if they went to the gym on that date
+
+```
+
+>It seems both men are now suspects because they were both at the gym the day Annabel saw the murderer. Lets follow up on the licence plate number we have from our witness Morty. 
+
+```{r licence_plate_matching}
+
+#To match a person to the plate, we first need the licence plate ids of our 2 suspects
+person %>%
+  filter(name %in% c("Joe Germuska", "Jeremy Bowers")) %>% #filter for suspect names
+  select(name, id, license_id) #pull their licence ids and ids
+#pull their licence plate numbers and look for a match to H42W
+drivers_license %>%
+  filter(id %in% c("173289", "423327"), str_detect(plate_number, "H42W")) %>% #filter for suspect ids and search for the partial plate number
+  pull(id) #pull the id of anyone with the matching plate
+
+```
+>We have found that Jeremy Bowers has the matching licence plate number so he is our top suspect, but lets see if he was interviewed.
+
+```{r suspect_interviews}
+# Jeremy Bowers
+interview %>%
+  filter(person_id =="67318") %>% #filter for the witness's id
+  pull(transcript) #pull the interview transcript
+```
+
+>Lets search for records of a woman matching Jeremy's description.
+
+```{r finding_murder_client}
+drivers_license %>%
+  filter(height %in% c("65", "66", "67"), hair_color =="red", car_make =="Tesla", car_model=="Model S") %>% #filter for the woman's height, hair, and car
+  pull(id) #pull the interview transcript
+```
+
+>Now we have three suspects for the woman who hired our hit-man. Lets find their person ids so we can search for their records in the facebook check-ins data later. 
+
+```{r}
+person %>%
+  filter(license_id %in% c("202298", "291182", "918773")) %>% #filter for suspect licence ids
+  select(name, id, license_id) #pull their ids and names
+```
+
+>Now out of these 3 women, lets see who attended the concert 3 times like Jeremy recalled in his interview. I considered using a map function to do this, but decided just using summarise would be cleaner with our 3 ids.
+
+```{r concert_attendants}
+
+facebook_event_checkin %>%
+  filter(str_detect(date, "201712"), #filter for December 2017
+         event_name == "SQL Symphony Concert",  #look for the concert event check-ins
+         person_id %in% c("78881", "90700", "99716")) %>% #filter for the ids of our female suspects
+  group_by(person_id) %>% #group by person
+  summarise(times_attended = n()) #count the number of times each suspect attended the concert
+```
+> Only Miranda Priestly attended the concert 3 times in December, so she must be the woman who hired our hit-man (who should also be charged).
+
 ::: callout-note
 ## And the final suspect is...
 
-*put the name of the person responsible for the murder here.*
+*Miranda Priestly*
 :::
