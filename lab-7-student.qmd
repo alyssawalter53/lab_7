@@ -1,4 +1,5 @@
 ---
+title: Lab 7 Revised
 author: "Alyssa Walter"
 editor: 
   markdown: 
@@ -103,20 +104,19 @@ reproducible.
 -   Comment your code.
 -   Cite any external sources you use to solve the mystery.
 
->e need to find our witnesses so that we can search for their interview records. But all we have is their streets and a first name.
+>We need to find our witnesses so that we can search for their interview records. But all we have is their streets and a first name.
 
 ```{r finding_witnesses}
 
 #searching for witness 1: Northwestern Dr
 person %>%
-  filter(address_street_name =="Northwestern Dr") %>% #filter for the witness's address
-  arrange(desc(address_number))%>% #we know they live at the last house on the street, so order addresses in descending
-  pull(name, id) %>% #pull the resident's name and ID
-  head(1) #of only the last house on the street
+  filter(address_street_name == "Northwestern Dr") %>%  #filter for the witness's address
+  filter(address_number == max(address_number))  #find information for the last address
+
 
 #searching for witness 2: Annabel on Franklin Ave
 person %>%
-  filter(address_street_name =="Franklin Ave", str_detect(name, "Annabel ")) %>% #filter for the witness's address and name (from her first name)
+  filter(address_street_name =="Franklin Ave", str_detect(name, "Annabel ")) %>%  #filter for the witness's address and name (from her first name)
   pull(name, id) #pull the resident's name and ID
 ```
 >Next we are looking through the witness interviews, so that we can learn any information about the suspect.
@@ -124,35 +124,24 @@ person %>%
 
 ```{r witness_interviews}
 
-# Morty Schapiro
-interview %>%
-  filter(person_id =="14887") %>% #filter for the witness's id
-  pull(transcript) #pull the interview transcript
+witness_ids <- c(14887, 16371) # save the two witness ids
 
-# Annabel Miller
-interview %>%
-  filter(person_id =="16371") %>% #filter for the witness's id
-  pull(transcript) #pull the interview transcript
+person %>%
+  filter(id %in% witness_ids) %>% #Filter for the ids
+  left_join(interview, by = c("id" = "person_id")) %>% #join the interview data
+  select(name, transcript) #pull the names and transcripts
 
 ```
->Since a witness believes the suspect is a Get Fit Now "gold" member, we need to identify anyone with the matching gym membership ids. 
+>Since a witness believes the suspect is a Get Fit Now "gold" member, we need to identify anyone with the matching gym membership ids and date Annabel saw them.
 
 ```{r identifying_suspects}
 
-#searching for member name
-get_fit_now_member %>%
-  filter(str_detect(id, "48Z") , membership_status =="gold") %>% #filter for the witness's id
-  pull(name, id) #pull the interview transcript
-
-```
-
->There are two gold members with that partial ID number. "Joe Germuska" and "Jeremy Bowers". Now we need to see if either of them was at the gym on January 9th, the day Annabel remembers seeing the murderer.
-
-```{r finding_evidence}
-
+# searching for member names and dates
 get_fit_now_check_in %>%
-  filter(str_detect(membership_id, "48Z") , check_in_date =="20180109") %>% #filter for the date Annabel saw the murderer
-  pull(membership_id) #pull the id of our suspect if they went to the gym on that date
+  filter(str_detect(membership_id, "48Z"), check_in_date == "20180109") %>% #filter for partial id number and date
+  left_join(get_fit_now_member, by = c("membership_id" = "id")) %>% #join the member data
+  select(name, membership_status, check_in_date) #pull the names, membership status, and date
+
 
 ```
 
@@ -160,14 +149,13 @@ get_fit_now_check_in %>%
 
 ```{r licence_plate_matching}
 
-#To match a person to the plate, we first need the licence plate ids of our 2 suspects
+#To match a person to the plate, we first need to crosscheck the licence plate ids of our 2 suspects with our partial plate
 person %>%
   filter(name %in% c("Joe Germuska", "Jeremy Bowers")) %>% #filter for suspect names
-  select(name, id, license_id) #pull their licence ids and ids
-#pull their licence plate numbers and look for a match to H42W
-drivers_license %>%
-  filter(id %in% c("173289", "423327"), str_detect(plate_number, "H42W")) %>% #filter for suspect ids and search for the partial plate number
-  pull(id) #pull the id of anyone with the matching plate
+  left_join(drivers_license, by = c("license_id" = "id")) %>% #left join with license data
+  filter(str_detect(plate_number, "H42W")) %>% #search for partial plate number
+  select(name, plate_number) #pull the names and plate numbers
+
 
 ```
 >We have found that Jeremy Bowers has the matching licence plate number so he is our top suspect, but lets see if he was interviewed.
@@ -205,6 +193,7 @@ facebook_event_checkin %>%
          person_id %in% c("78881", "90700", "99716")) %>% #filter for the ids of our female suspects
   group_by(person_id) %>% #group by person
   summarise(times_attended = n()) #count the number of times each suspect attended the concert
+
 ```
 > Only Miranda Priestly attended the concert 3 times in December, so she must be the woman who hired our hit-man (who should also be charged).
 
